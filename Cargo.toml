@@ -1,0 +1,12 @@
+[package]
+name = "cantaloupe"
+version = "0.0.1"
+authors = ["Bernhard Schuster <bernhard@ahoi.io>"]
+description = "Something with rpms, playground"
+keywords = ["rpm","repository","repo"]
+homepage = "https://ahoi.io/projects/cantaloupe"
+repository = "https://github.com/drahnr/cantaloupe.git"
+license = "MIT/Apache-2.0"
+
+[dependencies]
+tokio = "0.1"
