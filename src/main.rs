@@ -1,49 +1,57 @@
 extern crate actix;
 extern crate actix_web;
+
 #[macro_use]
-extern crate askama;
+extern crate failure;
+
+#[macro_use]
+extern crate common_failures;
 
 use std::collections::HashMap;
 
-use actix_web::{http, server, App, HttpResponse, Query, Result};
-use askama::Template;
+use actix_web::{web, http, App, HttpServer, HttpResponse};
+use actix_web::web::Query;
 
-#[derive(Template)]
-#[template(path = "user.html")]
-struct UserTemplate<'a> {
-    name: &'a str,
-    text: &'a str,
-}
+use common_failures::prelude::*;
 
-#[derive(Template)]
-#[template(path = "index.html")]
-struct Index {
-}
+
+mod errors;
+mod repo;
+use crate::repo::*;
+
+mod xml;
+use crate::xml::*;
 
 
 fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
+    let repo = Repo::new( "canta.ahoi.io".parse()? );
+
     let s = if let Some(name) = query.get("name") {
-        UserTemplate {
-            name: name,
-            text: "Welcome!",
-        }.render()
-            .unwrap()
+
+        let meta_data = RepoMetaData::new(&repo);
+        meta_data.xml_render()?
     } else {
-        Index{}.render().unwrap()
+        Index::new(&repo).xml_render()?
     };
     Ok(HttpResponse::Ok().content_type("text/html").body(s))
 }
 
-fn main() {
-    let sys = actix::System::new("template-askama");
+fn run() -> Result<()> {
+    let sys = actix::System::new("cantaloupe");
 
     // start http server
-    server::new(move || {
-        App::new().resource("/", |r| r.method(http::Method::GET).with(index))
-    }).bind("127.0.0.1:8080")
-        .unwrap()
+    HttpServer::new(move || {
+        App::new().service(
+            web::resource("/").route(web::get().to(index))
+        )
+    }).bind("127.0.0.1:8899")?
         .start();
 
-    println!("Started http server: 127.0.0.1:8080");
-    let _ = sys.run();
+    println!("Started http server: 127.0.0.1:8899");
+    sys.run()?;
+    Ok(())
 }
+
+
+
+quick_main!(run);

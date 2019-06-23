@@ -1,18 +1,21 @@
 [package]
 name = "cantaloupe"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["Bernhard Schuster <bernhard@ahoi.io>"]
-description = "Something with rpms, playground"
+description = "rpm repository server with package deployment API"
 keywords = ["rpm","repository","repo"]
 homepage = "https://ahoi.io/projects/cantaloupe"
 repository = "https://github.com/drahnr/cantaloupe.git"
 license = "MIT/Apache-2.0"
+edition = "2018"
 
 [dependencies]
-tokio = "^0.1.7"
-actix = "^0.6.1"
-actix-web = "^0.6.14"
-askama = "^0.7.0"
-
-[build-dependencies]
-askama = "^0.7.0"
+tokio = "0.1"
+actix = "0.8"
+actix-web = "1"
+failure = "0.1"
+common_failures = "0.1"
+compression = "0.1"
+sha2 = "0.8"
+url = "1"
+bytes = "0.4"
