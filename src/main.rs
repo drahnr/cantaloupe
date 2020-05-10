@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
-use actix;
 use actix_web::{
+    put,get,post,
+    middleware,
     error, http,
     web::{self, Query},
-    App, Error, HttpResponse, HttpServer,
+    App, Error, HttpResponse, HttpServer, Responder
 };
+
 use bytes::BytesMut;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -28,14 +30,18 @@ use crate::repo::*;
 mod xml;
 use crate::xml::*;
 
-fn repo_xml() -> Result<HttpResponse, Error> {
-    unimplemented!()
+
+#[get("/repo.xml")]
+fn repo_xml() -> HttpResponse {
+    let s = format!("<TO><DO></DO></TO>");
+    HttpResponse::Ok().content_type("text/html").body(s)
 }
 
 /// Query what
+#[get("/index.html")]
 fn index(
     state: web::Data<SharedState>,
-    query: Query<HashMap<String, String>>) -> Result<HttpResponse,Error> {
+    query: Query<HashMap<String, String>>) -> HttpResponse {
 
 
     let repo = state.repo.read().unwrap();
@@ -46,7 +52,7 @@ fn index(
     } else {
         Index::new(&repo).xml_render().unwrap()
     };
-    Ok(HttpResponse::Ok().content_type("text/html").body(s))
+    HttpResponse::Ok().content_type("text/html").body(s)
 }
 
 // fn stream_pkg(name : &str, data : &Bytes) -> Result<HttpResponse> {
@@ -60,10 +66,10 @@ fn index(
 //     Ok(HttpResponse::Ok().content_type("application/x-rpm").content_length(data.len()).streaming(stream))
 // }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SharedState {
-    pub verifier: Arc<Mutex<rpm::signature::pgp::Verifier>>,
-    pub repo: Arc<RwLock<Repo>>,
+    pub verifier: Mutex<rpm::signature::pgp::Verifier>,
+    pub repo: RwLock<Repo>,
 }
 
 impl SharedState {
@@ -71,8 +77,8 @@ impl SharedState {
         const x: &'static [u8] = include_bytes!("../public_key.asc");
         // FIXME TODO
         Self {
-            verifier : Arc::new(Mutex::new(rpm::signature::pgp::Verifier::load_from_asc_bytes(&x).unwrap() )),
-            repo: Arc::new( RwLock::new(Repo::new( "canta.ahoi.io".parse().unwrap() ))),
+            verifier : Mutex::new(rpm::signature::pgp::Verifier::load_from_asc_bytes(&x).unwrap() ),
+            repo: RwLock::new(Repo::new( "https://canta.ahoi.io".parse().unwrap() )),
         }
     }
 
@@ -88,17 +94,22 @@ pub struct UploadResponse {
     verified: bool,
 }
 
+use std::string::ToString;
+
+#[put("/index.html")]
 async fn upload_rpm(
     state: web::Data<SharedState>,
     mut payload: web::Payload,
-) -> Result<HttpResponse, Error> {
+) -> HttpResponse {
+    log::info!("Starting upload");
     // payload is a stream of Bytes objects
     let mut body = BytesMut::new();
     while let Some(chunk) = payload.next().await {
-        let chunk = chunk?;
+        let chunk = chunk.unwrap();
         // limit max size of in-memory payload
         if (body.len() + chunk.len()) > MAX_RPM_SIZE {
-            return Err(error::ErrorBadRequest("rpm too large"));
+            log::warn!("RPM too large")
+            //return Err(error::ErrorBadRequest("rpm too large"));
         }
         body.extend_from_slice(&chunk);
     }
@@ -122,27 +133,35 @@ async fn upload_rpm(
         verified: true,
     };
 
-    Ok(HttpResponse::Ok().json(x)) // <- send response
+    HttpResponse::Ok().json(x)
 }
 
+#[get("/alive/{whatever}")]
+async fn alive(info: web::Path<String>) -> HttpResponse {
+    HttpResponse::Ok().content_type("plain/text").body(format!("Hello {}!", info))
+}
+
+
 fn main() -> errors::Result<()> {
-    let sys = actix::System::new("cantaloupe");
+    env_logger::init();
+
+    let mut sys = actix_rt::System::new("cantaloupe");
 
     // start http server
     let http = HttpServer::new(move || {
         App::new()
-            .app_data(SharedState::new())
-            .service(web::resource("/").route(web::get().to(index)))
-            .service(
-                web::resource("/repo.xml")
-                .route(web::get().to(repo_xml))
-                .route( web::post().to(upload_rpm)))
+            .data(SharedState::new())
+            .service(upload_rpm)
+            .service(index)
+            .service(alive )
+            .wrap(middleware::Logger::default())
     })
     .bind("127.0.0.1:8899")?
     .workers(8);
 
 
-    println!("Started http server: 127.0.0.1:8899");
-    sys.block_on(http)?;
+    log::info!("Started http server: 127.0.0.1:8899");
+    let server = http.run();
+    let _ = sys.block_on(server);
     Ok(())
 }
