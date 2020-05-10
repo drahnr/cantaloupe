@@ -3,18 +3,19 @@ use crate::errors::*;
 use std::path::{PathBuf,Path};
 use sha2::Sha256;
 use url::Url;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct Repo {
     url : Url,
-    packages : Vec<Package>,
+    packages : HashSet<Package>,
 }
 
 impl Repo {
     pub fn new(url : Url) -> Self {
         Self {
             url : url,
-            packages : Vec::with_capacity(10)
+            packages : HashSet::with_capacity(32)
         }
     }
 
@@ -33,13 +34,13 @@ impl Repo {
 
     pub fn url(&self) -> Url {
         self.url.clone()
-    } 
+    }
 }
 
 
 #[derive(Debug)]
 pub struct Package {
-    files : Vec<PathBuf>,
+    files : HashSet<PathBuf>,
 }
 
 impl Package {
@@ -69,7 +70,7 @@ impl Package {
 
     pub fn rel(&self) -> String {
         "88".to_string()
-    } 
+    }
 
     pub fn epoch(&self) -> u64 {
         1u64
@@ -78,4 +79,11 @@ impl Package {
     pub fn name(&self) -> String {
         "".to_string()
     }
+}
+
+
+
+#[cfg(test)]
+mod test {
+
 }

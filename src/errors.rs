@@ -1,14 +1,23 @@
-use crate::failure;
-use crate::failure::Fail;
+use thiserror::Error;
+pub use anyhow::Result;
 
-#[derive(Debug,Fail)]
+pub use anyhow::Context;
+
+#[derive(Debug,Error)]
 pub enum CantaError {
-    #[fail(display = "Failed during IO operation")]
-    IoError,
-    #[fail(display = "Failed to compress xml")]
+    #[error("Failed during IO operation: {0}")]
+    IoError(std::io::Error),
+    #[error("Failed to compress xml")]
     CompressionFailed,
-    #[fail(display = "Unspecific error: {}", what)]
+    #[error("Unspecific error: {what}")]
     SomethingWentWrong {
         what: String,
     }
+}
+
+
+
+#[cfg(test)]
+mod test {
+
 }

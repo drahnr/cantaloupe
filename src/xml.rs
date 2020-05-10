@@ -3,13 +3,11 @@ use crate::repo::Repo;
 use sha2::{Digest,Sha256};
 use bytes::Bytes;
 
-use common_failures::prelude::*;
-
 use std::marker::PhantomData;
 
 use compression::prelude::*;
 
-use crate::failure::Fail;
+use anyhow::Context;
 
 pub trait XmlRender {
     fn xml_render(&self) -> Result<String>;
@@ -22,7 +20,7 @@ pub trait XmlRender {
             .cloned()
             .encode(&mut GZipEncoder::new(), Action::Finish)
             .collect::<std::result::Result<Vec<_>, _>>().map_err(|err| {
-                CantaError::CompressionFailed.context(err)
+                CantaError::CompressionFailed //.with_context(err)
             })?;
         Ok(Bytes::from(bytes))
     }
@@ -54,7 +52,7 @@ pub trait XmlRender {
     }
 
     fn compression_name() -> String {
-       "gz".to_string() 
+       "gz".to_string()
     }
 }
 
@@ -220,5 +218,11 @@ r#"
 ))
     }
 }
-    
 
+
+
+
+#[cfg(test)]
+mod test {
+
+}
