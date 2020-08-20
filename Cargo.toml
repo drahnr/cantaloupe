@@ -26,4 +26,7 @@ serde_json = "1"
 log = "0.4"
 env_logger = "0.7"
 rpm = { package = "rpm-rs", version = "0.6.0", features = ["signature-pgp"] }
-repo = { package = "rpm-repo-metadata", path = "./repo" }
+repo = { package = "repomd", path = "./repomd" }
+
+[workspace]
+members = ["repomd"]

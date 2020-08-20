@@ -23,11 +23,11 @@ use anyhow::Context;
 const MAX_RPM_SIZE: usize = 128_000_000; // max payload size is 128 MB
 
 mod errors;
+use errors::*;
 
 use repo::{self, *};
 
-mod xml;
-use crate::xml::*;
+use repo::xml::*;
 
 
 #[get("/repo.xml")]
@@ -46,10 +46,10 @@ fn index(
     let repo = state.repo.read().unwrap();
 
     let s = if let Some(_name) = query.get("name") {
-        let meta_data = RepoMetaData::new(&repo);
+        let meta_data = repo::RepoMetaData::new(&repo);
         meta_data.xml_render().unwrap()
     } else {
-        Index::new(&repo).xml_render().unwrap()
+        repo::Index::new(&repo).xml_render().unwrap()
     };
     HttpResponse::Ok().content_type("text/html").body(s)
 }
