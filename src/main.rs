@@ -11,21 +11,20 @@ use actix_web::{
 use bytes::BytesMut;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use serde_json;
+
 use std::str::FromStr;
-use std::sync::Arc;
+
 use std::sync::Mutex;
 use std::sync::RwLock;
 use rpm;
-use std::io::{Read,Write,Cursor};
+use std::io::{Read};
 use anyhow::Context;
 
 const MAX_RPM_SIZE: usize = 128_000_000; // max payload size is 128 MB
 
 mod errors;
 
-mod repo;
-use crate::repo::*;
+use repo::{self, *};
 
 mod xml;
 use crate::xml::*;
@@ -46,7 +45,7 @@ fn index(
 
     let repo = state.repo.read().unwrap();
 
-    let s = if let Some(name) = query.get("name") {
+    let s = if let Some(_name) = query.get("name") {
         let meta_data = RepoMetaData::new(&repo);
         meta_data.xml_render().unwrap()
     } else {
@@ -82,7 +81,7 @@ impl SharedState {
         }
     }
 
-    pub fn add_verification_key<R: Read>(rdr: R) -> Result<(), Error> {
+    pub fn add_verification_key<R: Read>(_rdr: R) -> Result<(), Error> {
         unimplemented!("nope")
     }
 }

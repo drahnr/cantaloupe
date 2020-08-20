@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 
 use compression::prelude::*;
 
-use anyhow::Context;
+
 
 pub trait XmlRender {
     fn xml_render(&self) -> Result<String>;
@@ -19,7 +19,7 @@ pub trait XmlRender {
             .into_iter()
             .cloned()
             .encode(&mut GZipEncoder::new(), Action::Finish)
-            .collect::<std::result::Result<Vec<_>, _>>().map_err(|err| {
+            .collect::<std::result::Result<Vec<_>, _>>().map_err(|_err| {
                 CantaError::CompressionFailed //.with_context(err)
             })?;
         Ok(Bytes::from(bytes))
