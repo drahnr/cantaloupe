@@ -21,3 +21,20 @@ impl<'a> XmlRender for Primary<'a> {
         )
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::integration::assets::repo;
+    use crate::integration::groundtruth;
+
+    #[test]
+    fn primary() {
+        let x = repo();
+
+        let primary = Primary::new(&x);
+        let content = primary.xml_render().expect("No reason to fail rendering xml. qed");
+        assert_eq!(content.replace('\n', ""), dbg!(groundtruth::primary_xml()).replace('\n', ""));
+    }
+}

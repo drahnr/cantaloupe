@@ -1,16 +1,16 @@
 use super::*;
 
-use serde::Serialize;
-use serde::Deserialize;
-use toml;
-use indexmap::IndexMap;
 use chrono::Duration;
+use indexmap::IndexMap;
+use serde::Deserialize;
+use serde::Serialize;
 use strum;
 use strum_macros;
+use toml;
 
 #[derive(Serialize, Deserialize, Clone, Copy, strum_macros::EnumString)]
 enum RepoFormat {
-    #[strum(serialize="rpm-md",serialize="rpm")]
+    #[strum(serialize = "rpm-md", serialize = "rpm")]
     RepoMD,
 }
 
@@ -19,7 +19,6 @@ impl Default for RepoFormat {
         Self::RepoMD
     }
 }
-
 
 /// One block of a repository file
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -36,10 +35,9 @@ struct RepoFileBlock {
     metadata_expire: u64, // @todo use a custom type based on 7y 8m 7d 1h 5s notation
     #[serde(default)]
     autorefresh: bool,
-    #[serde(default,alias="type")]
+    #[serde(default, alias = "type")]
     format: RepoFormat,
 }
-
 
 /// A repository description for a client such as `dnf` or `zypper`
 #[derive(Serialize, Deserialize, Clone)]
@@ -48,7 +46,6 @@ struct RepoFile {
 }
 
 // @todo custom serialization implementation
-
 
 // #[derive(Default)]
 // struct RepoDescBuilder {
@@ -68,7 +65,7 @@ struct RepoFile {
 //     }
 
 //     fn url(url: Url) -> {
-//         self 
+//         self
 //     }
 
 //     fn build() -> RepoDesc {
@@ -79,7 +76,6 @@ struct RepoFile {
 //     }
 // }
 
-
 impl RepoFile {
     // fn builder() -> RepoDescBuilder {
     //     RepoDescBuilder::default()
@@ -89,13 +85,11 @@ impl RepoFile {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-const SAMPLE_1: &'static str = r#"
+    const SAMPLE_1: &'static str = r#"
 [fedora]
 name=Fedora $releasever - $basearch
 #baseurl=http://download.example/pub/fedora/linux/releases/$releasever/Everything/$basearch/os/
@@ -110,8 +104,7 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch
 skip_if_unavailable=False
 "#;
 
-
-const SAMPLE_2: &'static str = r#"
+    const SAMPLE_2: &'static str = r#"
 [nexus-production]
 name=Production Repository
 baseurl=http://localhost:8081/nexus/service/local/yum/repos/releases/production/
@@ -123,9 +116,6 @@ autorefresh=1
 type=rpm-md
 Promote RPM through Stages "#;
 
-
-#[test]
-fn test_name() {
-    
-}
+    #[test]
+    fn test_name() {}
 }

@@ -1,24 +1,24 @@
-use sha2::{Digest,Sha256};
 use bytes::Bytes;
+use sha2::{Digest, Sha256};
 
 // use std::marker::PhantomData;
 
 use compression::prelude::*;
-
 
 use crate::error::{Error, Result};
 
 pub trait XmlRender {
     fn xml_render(&self) -> Result<String>;
 
-
     fn compressed_xml_bytes(&self) -> Result<Bytes> {
         let s = self.xml_render()?;
-        let bytes = s.as_bytes()
+        let bytes = s
+            .as_bytes()
             .into_iter()
             .cloned()
             .encode(&mut GZipEncoder::new(), Action::Finish)
-            .collect::<std::result::Result<Vec<_>, _>>().map_err(|_err| {
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|_err| {
                 Error::CompressionFailed //.with_context(err)
             })?;
         Ok(Bytes::from(bytes))
@@ -45,13 +45,11 @@ pub trait XmlRender {
         })
     }
 
-
     fn digest_name(&self) -> String {
         "sha256".to_string()
     }
 
     fn compression_name() -> String {
-       "gz".to_string()
+        "gz".to_string()
     }
 }
-

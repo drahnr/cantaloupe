@@ -38,7 +38,7 @@ r#"
     <timestamp>{timestamp}</timestamp>
 </data>
 <data type="other">
-    <open-checksum type="{digest_name}">{filelist_uncompressed_digest}</open-checksum>
+    <open-checksum type="{digest_name}">{other_uncompressed_digest}</open-checksum>
     <checksum type="{digest_name}">{other_digest}</checksum>
     <location href="repodata/{other_digest}-other.xml.gz"/>
     <timestamp>{timestamp}</timestamp>
@@ -54,5 +54,21 @@ r#"
     other_digest = other.compressed_xml_digest()?,
     other_uncompressed_digest = other.xml_digest()?,
 ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::integration::assets::repo;
+    use crate::integration::groundtruth;
+
+    #[test]
+    fn metadata() {
+        let x = repo();
+
+        let meta = RepoMetaData::new(&x);
+        let content = meta.xml_render().expect("No reason to fail rendering xml. qed");
+        assert_eq!(content.replace('\n', ""), groundtruth::repomd_xml().to_owned().replace('\n', ""));
     }
 }

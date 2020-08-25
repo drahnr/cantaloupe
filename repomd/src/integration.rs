@@ -1,18 +1,19 @@
-use std::process::Command;
-use which;
 use std::env;
 use std::path::PathBuf;
-
-
+use std::process::Command;
+use std::convert::TryInto;
+use std::str::FromStr;
+use which;
 pub(crate) mod helper {
     use super::*;
 
     pub(crate) fn launch_createrepo() {
-        let createrepo = which::which("createrepo").expect("Did not find createrepo in search paths");
+        let createrepo =
+            which::which("createrepo").expect("Did not find createrepo in search paths");
         let manifestdir = env!("CARGO_MANIFEST_DIR");
         let outdir = PathBuf::from(manifestdir).join("groundtruth");
         let indir = PathBuf::from(manifestdir).join("tests").join("assets");
-        let baseurl = "http://sub.example.com/repo/";
+        let baseurl = "https://repo.konifay.io/cantaloupe/";
 
         let output = Command::new(createrepo)
             .arg(format!("--outputdir={}", outdir.to_string_lossy()))
@@ -36,14 +37,18 @@ pub(crate) mod helper {
 }
 
 pub(crate) mod groundtruth {
+    use compression::prelude::*;
 
-
-    pub(crate) fn repomod_xml() -> &'static [u8] {
-        include_bytes!("../groundtruth/repodata/repomd.xml")
+    pub(crate) fn repomd_xml() -> String {
+        let data = include_bytes!("../groundtruth/repodata/repomd.xml");
+        let s = std::string::String::from_utf8_lossy(data);
+        let s: &str = &s;
+        let s = s.to_owned();
+        s
     }
 
     pub(crate) fn primary_xml_gz() -> &'static [u8] {
-        include_bytes!("../groundtruth/repodata/349b990aa8a8c9a8ad1b85866a00e8a8b87d9e2b66e7e10491f8d189621a41ea-primary.xml.gz")
+        include_bytes!("../groundtruth/repodata/81f452c5f8139c65da555d19dad7adeae3f4e2e3665ef538243ac161862b3885-primary.xml.gz")
     }
 
     pub(crate) fn filelists_xml_gz() -> &'static [u8] {
@@ -53,21 +58,120 @@ pub(crate) mod groundtruth {
     pub(crate) fn other_xml_gz() -> &'static [u8] {
         include_bytes!("../groundtruth/repodata/0f12187e68182b9f05d922d8f480316e78da5ce7e3b028b31c53e9d373d8b6d4-other.xml.gz")
     }
+
+    fn decompressed(data: &'static [u8]) -> String
+     {
+       
+        let x = data.into_iter()
+            .cloned()
+            .decode(&mut GZipDecoder::new())
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        String::from(std::string::String::from_utf8_lossy(x.as_slice()))
+
+    }
+
+    pub(crate) fn filelists_xml() -> String {
+        decompressed(filelists_xml_gz())
+    }
+    pub(crate) fn primary_xml() -> String {
+        decompressed(primary_xml_gz())
+    }
+    pub(crate) fn other_xml() -> String {
+        decompressed(other_xml_gz())
+    }
 }
 
 pub(crate) mod assets {
+    use crate::Package;
+    use crate::Repo;
+    use crate::Version;
+    use crate::Arch;
+    use crate::Release;
+    use std::path::PathBuf;
+    use digest::Digest;
+    use url::Url;
+    use super::*;
 
-    pub(crate) fn other_xml_gz() -> &'static [u8] {
-        include_bytes!("../tests/assets/vlc-3.0.9.2-3.fc32.x86_64.rpm")
+    /// Reads a full rpm from `data`.
+    fn read_rpm(data: &'static [u8]) -> Package {
+        let mut buf_reader = std::io::BufReader::new(data);
+        let pkg =
+            rpm::RPMPackage::parse(&mut buf_reader).expect("Must be able to create reader. qed");
+        // @todo we do not have the keys ready just yet
+        let header = pkg.metadata.header;
+
+        let files = header
+            .get_file_entries()
+            .map(|entries| {
+                entries
+                    .into_iter()
+                    .map(|entry| entry.path)
+                    .collect::<Vec<PathBuf>>()
+                })
+            .expect("PackageHeader must have required file fields. qed");
+
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(data);
+
+        let pkg = Package {
+            identifier: hex::encode(hasher.finalize().as_slice()),
+            name: header
+                .get_name()
+                .expect("PackageHeader must have >name< field. qed")
+                .to_owned(),
+            version: Version::from_str(header
+                .get_version()
+                .expect("PackageHeader must have >version< field. qed"))
+                .unwrap(),
+            epoch: header
+                .get_epoch()
+                .unwrap_or_default()
+                .try_into()
+                .unwrap_or_default(),
+            release: Release::from_str(
+                header
+               .get_release()
+               .expect("PackageHeader must have >release< field. qed")).unwrap(),
+            // @todo this is actully `7.fc32`
+            //u32::from_str(dbg!(
+            //    .expect("Must be a str"),
+            arch: Arch::from_str(header
+                .get_arch()
+                .expect("PackageHeader must have >arch< field. qed")
+                )
+                .unwrap(),
+            files,
+        };
+        pkg
     }
 
-    pub(crate) fn rpm() -> &'static [u8] {
-        include_bytes!("../tests/assets/wf-recorder-0.2.1-1.fc32.x86_64.rpm")
+    pub(crate) fn rpm_pkg_1() -> (&'static [u8], Package) {
+        const DATA: &'static [u8] = include_bytes!("../tests/assets/vlc-3.0.9.2-3.fc32.x86_64.rpm");
+        (DATA, read_rpm(DATA))
+    }
+
+    pub(crate) fn rpm_pkg_2() -> (&'static [u8], Package) {
+        const DATA: &'static [u8] =
+            include_bytes!("../tests/assets/wf-recorder-0.2.1-1.fc32.x86_64.rpm");
+        (DATA, read_rpm(DATA))
+    }
+
+    pub(crate) fn repo() -> crate::Repo {
+        let mut repo = Repo::new(
+            Url::parse("https://repo.konifay.io/cantaloupe")
+                .unwrap()
+            );
+
+        repo.add_package(rpm_pkg_1().1);
+        repo.add_package(rpm_pkg_2().1);
+
+        repo
     }
 }
-
 
 #[test]
 fn cmp_to_create_repo() {
     helper::launch_createrepo();
 }
+

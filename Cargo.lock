@@ -1025,6 +1025,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-primitive-derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f52288f9a7ebb08959188872b58e7eaa12af9cb47da8e94158e16da7e143340"
+dependencies = [
+ "num-traits",
+ "quote 1.0.7",
+ "syn 1.0.38",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1408,6 +1419,15 @@ dependencies = [
  "widestring",
  "winapi 0.3.9",
  "winreg",
+]
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -2110,7 +2130,10 @@ dependencies = [
  "bytes",
  "chrono",
  "compression",
+ "digest 0.9.0",
+ "hex",
  "indexmap",
+ "lazy_static",
  "log",
  "quick-xml",
  "rpm-rs",
@@ -2155,12 +2178,12 @@ checksum = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
 [[package]]
 name = "rpm-rs"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1175c27a3396b0d43cf4a6998c426d564cf782ab5c918a9e66d2797246439f92"
 dependencies = [
  "chrono",
  "cpio",
  "enum-display-derive",
+ "enum-primitive-derive",
+ "itertools",
  "libflate",
  "log",
  "md-5",
