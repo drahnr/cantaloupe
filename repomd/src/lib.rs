@@ -6,10 +6,10 @@ pub use servings::*;
 
 pub use error::{Error, Result};
 
+use std::collections::HashMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::collections::HashMap;
 
 use url::Url;
 
@@ -17,7 +17,7 @@ use url::Url;
 pub struct Repo {
     url: Url,
     arch: Arch,
-    packages: HashMap<String, HashMap<Version, Package>>,
+    packages: indexmap::IndexMap<String, HashMap<Version, Package>>,
 }
 
 impl Repo {
@@ -25,7 +25,7 @@ impl Repo {
         Self {
             url: url.into(),
             arch: Arch::default(),
-            packages: HashMap::with_capacity(128),
+            packages: indexmap::IndexMap::with_capacity(128),
         }
     }
 
@@ -94,14 +94,13 @@ impl fmt::Display for Version {
         write!(f, "{}", self.0.as_str())
     }
 }
-impl FromStr for  Version {
+impl FromStr for Version {
     type Err = crate::error::Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // @todo may not contain dashes
         Ok(Self(s.to_owned()))
     }
 }
-
 
 #[derive(Hash, PartialEq, Eq, Debug, Clone)]
 pub struct Release(String);
@@ -111,7 +110,7 @@ impl fmt::Display for Release {
         write!(f, "{}", self.0)
     }
 }
-impl FromStr for  Release {
+impl FromStr for Release {
     type Err = crate::error::Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Ok(Self(s.to_owned()))

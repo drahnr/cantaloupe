@@ -1,12 +1,13 @@
+use std::convert::TryInto;
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
-use std::convert::TryInto;
 use std::str::FromStr;
 use which;
 pub(crate) mod helper {
     use super::*;
 
+    /// launch crate repo
     pub(crate) fn launch_createrepo() {
         let createrepo =
             which::which("createrepo").expect("Did not find createrepo in search paths");
@@ -36,6 +37,43 @@ pub(crate) mod helper {
     }
 }
 
+#[macro_export]
+macro_rules! assert_xml_eq {
+    ($left:expr, $right:expr) => {
+        let left: String = $left;
+        let right: String = $right;
+
+        let normalize = |xml: String| -> String {
+            use quick_xml::events::Event;
+            use quick_xml::Reader;
+            use quick_xml::Writer;
+            use std::io::Cursor;
+
+            let mut reader = Reader::from_str(xml.as_str());
+            reader.trim_text(true);
+            let mut writer = Writer::new(Cursor::new(Vec::new()));
+            let mut buf = Vec::new();
+            loop {
+                match reader.read_event(&mut buf) {
+                    Ok(Event::Eof) => break,
+                    Ok(event) => assert!(writer.write_event(event).is_ok()),
+                    Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+                }
+                buf.clear();
+            }
+
+            let v = writer.into_inner().into_inner();
+            let cow = String::from_utf8_lossy(v.as_slice());
+            let s: &str = &cow;
+            s.to_owned()
+        };
+
+        let left = normalize(left);
+        let right = normalize(right);
+        assert_eq!(left, right);
+    };
+}
+
 pub(crate) mod groundtruth {
     use compression::prelude::*;
 
@@ -59,16 +97,14 @@ pub(crate) mod groundtruth {
         include_bytes!("../groundtruth/repodata/0f12187e68182b9f05d922d8f480316e78da5ce7e3b028b31c53e9d373d8b6d4-other.xml.gz")
     }
 
-    fn decompressed(data: &'static [u8]) -> String
-     {
-       
-        let x = data.into_iter()
+    fn decompressed(data: &'static [u8]) -> String {
+        let x = data
+            .into_iter()
             .cloned()
             .decode(&mut GZipDecoder::new())
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         String::from(std::string::String::from_utf8_lossy(x.as_slice()))
-
     }
 
     pub(crate) fn filelists_xml() -> String {
@@ -83,15 +119,15 @@ pub(crate) mod groundtruth {
 }
 
 pub(crate) mod assets {
+    use super::*;
+    use crate::Arch;
     use crate::Package;
+    use crate::Release;
     use crate::Repo;
     use crate::Version;
-    use crate::Arch;
-    use crate::Release;
-    use std::path::PathBuf;
     use digest::Digest;
+    use std::path::PathBuf;
     use url::Url;
-    use super::*;
 
     /// Reads a full rpm from `data`.
     fn read_rpm(data: &'static [u8]) -> Package {
@@ -108,7 +144,7 @@ pub(crate) mod assets {
                     .into_iter()
                     .map(|entry| entry.path)
                     .collect::<Vec<PathBuf>>()
-                })
+            })
             .expect("PackageHeader must have required file fields. qed");
 
         let mut hasher = sha2::Sha256::new();
@@ -120,10 +156,12 @@ pub(crate) mod assets {
                 .get_name()
                 .expect("PackageHeader must have >name< field. qed")
                 .to_owned(),
-            version: Version::from_str(header
-                .get_version()
-                .expect("PackageHeader must have >version< field. qed"))
-                .unwrap(),
+            version: Version::from_str(
+                header
+                    .get_version()
+                    .expect("PackageHeader must have >version< field. qed"),
+            )
+            .unwrap(),
             epoch: header
                 .get_epoch()
                 .unwrap_or_default()
@@ -131,16 +169,19 @@ pub(crate) mod assets {
                 .unwrap_or_default(),
             release: Release::from_str(
                 header
-               .get_release()
-               .expect("PackageHeader must have >release< field. qed")).unwrap(),
+                    .get_release()
+                    .expect("PackageHeader must have >release< field. qed"),
+            )
+            .unwrap(),
             // @todo this is actully `7.fc32`
             //u32::from_str(dbg!(
             //    .expect("Must be a str"),
-            arch: Arch::from_str(header
-                .get_arch()
-                .expect("PackageHeader must have >arch< field. qed")
-                )
-                .unwrap(),
+            arch: Arch::from_str(
+                header
+                    .get_arch()
+                    .expect("PackageHeader must have >arch< field. qed"),
+            )
+            .unwrap(),
             files,
         };
         pkg
@@ -158,10 +199,7 @@ pub(crate) mod assets {
     }
 
     pub(crate) fn repo() -> crate::Repo {
-        let mut repo = Repo::new(
-            Url::parse("https://repo.konifay.io/cantaloupe")
-                .unwrap()
-            );
+        let mut repo = Repo::new(Url::parse("https://repo.konifay.io/cantaloupe").unwrap());
 
         repo.add_package(rpm_pkg_1().1);
         repo.add_package(rpm_pkg_2().1);
@@ -174,4 +212,3 @@ pub(crate) mod assets {
 fn cmp_to_create_repo() {
     helper::launch_createrepo();
 }
-

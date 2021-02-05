@@ -17,7 +17,6 @@ pub enum Error {
 
     #[error("parse parse zhsuh")]
     Parsing,
-
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

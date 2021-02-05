@@ -6,8 +6,8 @@ pub struct RepoMetaData<'a> {
 }
 
 impl<'a> RepoMetaData<'a> {
-    pub fn new(repo : &'a Repo) -> Self {
-        Self {repo}
+    pub fn new(repo: &'a Repo) -> Self {
+        Self { repo }
     }
 
     pub fn timestamp(&self) -> u64 {
@@ -22,7 +22,7 @@ impl<'a> XmlRender for RepoMetaData<'a> {
         let other = Other::new(self.repo);
 
         Ok(format!(
-r#"
+            r#"
 <?xml version="1.0" encoding="UTF-8"?>
 <repomd xmlns="{url}">
 <data type="primary">
@@ -44,22 +44,23 @@ r#"
     <timestamp>{timestamp}</timestamp>
 </data>
 "#,
-    url = self.repo.url().as_str(),
-    timestamp = self.timestamp(),
-    digest_name = primary.digest_name(),
-    primary_digest = primary.compressed_xml_digest()?,
-    primary_uncompressed_digest = primary.xml_digest()?,
-    filelist_digest = filelist.compressed_xml_digest()?,
-    filelist_uncompressed_digest = filelist.xml_digest()?,
-    other_digest = other.compressed_xml_digest()?,
-    other_uncompressed_digest = other.xml_digest()?,
-))
+            url = self.repo.url().as_str(),
+            timestamp = self.timestamp(),
+            digest_name = primary.digest_name(),
+            primary_digest = primary.compressed_xml_digest()?,
+            primary_uncompressed_digest = primary.xml_digest()?,
+            filelist_digest = filelist.compressed_xml_digest()?,
+            filelist_uncompressed_digest = filelist.xml_digest()?,
+            other_digest = other.compressed_xml_digest()?,
+            other_uncompressed_digest = other.xml_digest()?,
+        ))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assert_xml_eq;
     use crate::integration::assets::repo;
     use crate::integration::groundtruth;
 
@@ -68,7 +69,9 @@ mod tests {
         let x = repo();
 
         let meta = RepoMetaData::new(&x);
-        let content = meta.xml_render().expect("No reason to fail rendering xml. qed");
-        assert_eq!(content.replace('\n', ""), groundtruth::repomd_xml().to_owned().replace('\n', ""));
+        let content = meta
+            .xml_render()
+            .expect("No reason to fail rendering xml. qed");
+        assert_xml_eq!(content, groundtruth::repomd_xml().to_owned());
     }
 }

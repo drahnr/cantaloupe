@@ -25,7 +25,7 @@ const MAX_RPM_SIZE: usize = 128_000_000; // max payload size is 128 MB
 mod errors;
 use errors::*;
 
-use repo::{self, *};
+use repo;
 
 use repo::xml::*;
 
