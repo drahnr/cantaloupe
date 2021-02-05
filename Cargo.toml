@@ -30,3 +30,7 @@ repo = { package = "repomd", path = "./repomd" }
 
 [workspace]
 members = ["repomd"]
+
+
+[patch.crates-io]
+rpm = { package="rpm-rs", path = "../rpm-rs", features = ["signature-pgp"] }
